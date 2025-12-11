@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Multi-Room Chat</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <h2>Chat Rooms</h2>
+            <input id="username" placeholder="Your name..." />
+            <input id="room" placeholder="Room name..." />
+            <button id="join">Join</button>
+            <h3>Online</h3>
+            <ul id="online-users"></ul>
+        </aside>
+
+        <section class="chat-window">
+            <header class="chat-header">
+                <h3 id="room-name">Room: general</h3>
+                <div id="room-tabs" class="room-tabs"></div>
+            </header>
+
+            <main id="chat" class="chat-area"></main>
+
+            <footer class="chat-footer">
+                <input id="message" placeholder="Type a message..." />
+                <button id="emoji-btn">😊</button>
+                <button id="send">Send</button>
+                <emoji-picker id="emoji-picker"
+                    style="display:none; position:absolute; bottom:70px; right:20px;"></emoji-picker>
+            </footer>
+        </section>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const chat = document.getElementById('chat');
+        const messageInput = document.getElementById('message');
+        const usernameInput = document.getElementById('username');
+        const roomInput = document.getElementById('room');
+        const sendBtn = document.getElementById('send');
+        const joinBtn = document.getElementById('join');
+        const roomNameDisplay = document.getElementById('room-name');
+        const emojiBtn = document.getElementById('emoji-btn');
+        const emojiPicker = document.getElementById('emoji-picker');
+        const onlineList = document.getElementById('online-users');
+        const roomTabs = document.getElementById('room-tabs');
+
+        let joinedRooms = new Set();
+        let activeRoom = 'general';
+        const unreadCounts = {};
+
+        function formatTime(t) {
+            const d = new Date(Number(t));
+            return isNaN(d.getTime())
+                ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function createMessage({ user, msg, time, room, id }, isSystem = false) {
+            if (room !== activeRoom) return;
+
+            const isSelf = user === (usernameInput.value || 'Anonymous').trim();
+            const wrapper = document.createElement('div');
+            wrapper.className = `message ${isSelf ? 'sent' : 'received'}`;
+            wrapper.dataset.id = id;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.innerHTML = isSystem
+                ? `<div class="meta system">${msg}</div>`
+                : `<div class="text">${msg}</div>
+           <div class="meta">${user} • ${formatTime(time)} <span class="read" style="display:none;">✓✓</span></div>`;
+
+            wrapper.appendChild(bubble);
+            chat.appendChild(wrapper);
+            chat.scrollTop = chat.scrollHeight;
+
+            if (!isSystem && !isSelf) {
+                socket.emit('message read', { room: activeRoom, msgId: id });
+            }
+        }
+
+        function switchRoom(room) {
+            activeRoom = room;
+            roomNameDisplay.textContent = `Room: ${room}`;
+            chat.innerHTML = '';
+            unreadCounts[room] = 0;
+            updateRoomTabBadge(room);
+        }
+
+        function updateRoomTabBadge(room) {
+            const tab = document.querySelector(`.room-tab[data-room="${room}"]`);
+            if (tab) {
+                const count = unreadCounts[room] || 0;
+                tab.querySelector('.badge').textContent = count > 0 ? count : '';
+            }
+        }
+
+        function addRoomTab(room) {
+            const tab = document.createElement('button');
+            tab.className = 'room-tab';
+            tab.dataset.room = room;
+            tab.innerHTML = `${room} <span class="badge"></span>`;
+            tab.onclick = () => switchRoom(room);
+            roomTabs.appendChild(tab);
+        }
+
+        joinBtn.onclick = () => {
+            const room = (roomInput.value || 'general').trim();
+            const user = (usernameInput.value || 'Anonymous').trim();
+
+            if (!joinedRooms.has(room)) {
+                socket.emit('join room', { room, user });
+                joinedRooms.add(room);
+                addRoomTab(room);
+            }
+
+            switchRoom(room);
+        };
+
+        sendBtn.onclick = () => {
+            const msg = messageInput.value.trim();
+            if (!msg) return;
+            const user = (usernameInput.value || 'Anonymous').trim();
+            socket.emit('chat message', { room: activeRoom, user, msg });
+            messageInput.value = '';
+        };
+
+        messageInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') sendBtn.onclick();
+        });
+
+        emojiBtn.onclick = () => {
+            emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+        };
+
+        emojiPicker.addEventListener('emoji-click', e => {
+            messageInput.value += e.detail.unicode;
+            emojiPicker.style.display = 'none';
+        });
+
+        socket.on('chat message', data => {
+            if (data.room === activeRoom) {
+                createMessage(data);
+            } else {
+                unreadCounts[data.room] = (unreadCounts[data.room] || 0) + 1;
+                updateRoomTabBadge(data.room);
+            }
+        });
+
+        socket.on('system message', data => {
+            if (data.room === activeRoom) createMessage(data, true);
+        });
+
+        socket.on('message read', ({ msgId }) => {
+            const msg = document.querySelector(`[data-id="${msgId}"] .read`);
+            if (msg) msg.style.display = 'inline';
+        });
+
+        socket.on('online users', users => {
+            onlineList.innerHTML = users.map(u => `<li>${u.user}</li>`).join('');
+        });
+    </script>
+</body>
+
+</html>

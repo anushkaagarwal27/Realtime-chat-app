@@ -1,0 +1,263 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body,
+html {
+    height: 100%;
+    font-family: 'Segoe UI', sans-serif;
+    background: #eae6df;
+}
+
+.app {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 25%;
+    background: #075e54;
+    color: white;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+}
+
+.sidebar input {
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.sidebar button {
+    padding: 10px;
+    background: #25d366;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.sidebar button:hover {
+    background: #1ebea5;
+}
+
+.sidebar h3 {
+    margin-top: 20px;
+    font-size: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    padding-top: 10px;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 8px;
+}
+
+.sidebar ul li {
+    padding: 6px 0;
+    font-size: 14px;
+    animation: pulse 0.6s ease-in-out;
+}
+
+.chat-window {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #ece5dd;
+    position: relative;
+}
+
+.chat-header {
+    background: #128c7e;
+    color: white;
+    padding: 16px;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.room-tabs {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.room-tab {
+    padding: 4px 10px;
+    background: #25d366;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    position: relative;
+    font-size: 14px;
+}
+
+.room-tab .badge {
+    background: red;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    position: absolute;
+    top: -6px;
+    right: -6px;
+}
+
+.chat-area {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: slideIn 0.4s ease-in-out;
+}
+
+.message {
+    display: flex;
+    max-width: 70%;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.message.sent {
+    align-self: flex-end;
+    justify-content: flex-end;
+}
+
+.message.received {
+    align-self: flex-start;
+}
+
+.bubble {
+    background: #ffffff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.message.sent .bubble {
+    background: #dcf8c6;
+}
+
+.text {
+    font-size: 14px;
+    word-wrap: break-word;
+}
+
+.meta {
+    font-size: 11px;
+    color: #555;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.meta.system {
+    font-style: italic;
+    text-align: center;
+    color: #888;
+}
+
+.read {
+    color: #34b7f1;
+    margin-left: 4px;
+}
+
+.chat-footer {
+    display: flex;
+    padding: 12px;
+    background: #f0f0f0;
+    gap: 10px;
+    align-items: center;
+    position: relative;
+}
+
+.chat-footer input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+}
+
+.chat-footer button {
+    padding: 10px 16px;
+    background: #128c7e;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.chat-footer button:hover {
+    background: #075e54;
+}
+
+emoji-picker {
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    animation: popIn 0.3s ease-out;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

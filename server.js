@@ -1,17 +1,15 @@
 const express = require("express");
 const app = express();
-// FIX: changed createServerTb -> createServer
-const http = require("http").createServer(app); 
+const http = require("http").createServer(app); // Corrected
 const io = require("socket.io")(http, {
   cors: {
-    origin: "*", 
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
 
 app.use(express.static("public"));
 
-// Add a default route to check if server is running on Render
 app.get("/", (req, res) => {
   res.send("Chat Server is Running!");
 });
@@ -65,7 +63,8 @@ io.on("connection", (socket) => {
           time: Date.now(),
           room,
         });
-        io.toDN(room).emit("online users", getUsersInRoom(room));
+        // FIX: The previous typo "toDN" is fixed to "to" here
+        io.to(room).emit("online users", getUsersInRoom(room));
       }
       delete users[socket.id];
     }

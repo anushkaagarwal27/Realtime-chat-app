@@ -1,9 +1,10 @@
 const express = require("express");
 const app = express();
-const http = require("http").createServerTb(app);
+// FIX: changed createServerTb -> createServer
+const http = require("http").createServer(app); 
 const io = require("socket.io")(http, {
   cors: {
-    origin: "*", // Allow connection from any URL (including your GitHub Pages)
+    origin: "*", 
     methods: ["GET", "POST"]
   }
 });
@@ -64,14 +65,13 @@ io.on("connection", (socket) => {
           time: Date.now(),
           room,
         });
-        io.to(room).emit("online users", getUsersInRoom(room));
+        io.toDN(room).emit("online users", getUsersInRoom(room));
       }
       delete users[socket.id];
     }
   });
 });
 
-// CRITICAL: Use process.env.PORT for Render, fallback to 3000 for local
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

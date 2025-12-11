@@ -37,15 +37,21 @@
         </section>
     </div>
 
-    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <!-- use CDN client, production build -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="" crossorigin="anonymous"></script>
+
     <script>
         // --- CONFIGURATION ---
-        // REPLACE THIS URL with your actual Render backend URL after deployment.
+        // Replace BACKEND_URL with your TLS-enabled backend domain after deployment.
         // Example: "https://my-chat-app.onrender.com"
-        // If testing locally, keep it as: "http://localhost:3000"
-        const BACKEND_URL = "https://realtime-chat-app-gc6x.onrender.com"; 
-        
-        const socket = io(BACKEND_URL);
+        const BACKEND_URL = "https://realtime-chat-app-gc6x.onrender.com";
+
+        // Force websocket-only transport so the client will not request
+        // /socket.io/socket.io.js or perform xhr-polling that could return
+        // scripts from the backend and trigger CSP eval warnings.
+        const socket = io(BACKEND_URL, {
+            transports: ["websocket"]
+        });
         // ---------------------
 
         const chat = document.getElementById('chat');
@@ -71,7 +77,7 @@
                 : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        // SECURITY FIX: Using textContent instead of innerHTML for user messages
+        // SECURITY FIX: Use textContent and element builders to avoid injecting HTML
         function createMessage({ user, msg, time, room, id }, isSystem = false) {
             if (room !== activeRoom) return;
 
@@ -86,19 +92,35 @@
             if (isSystem) {
                 const meta = document.createElement('div');
                 meta.className = 'meta system';
-                meta.textContent = msg; 
+                meta.textContent = msg;
                 bubble.appendChild(meta);
             } else {
                 const textDiv = document.createElement('div');
                 textDiv.className = 'text';
-                textDiv.textContent = msg; // This prevents XSS attacks
+                textDiv.textContent = msg;
 
                 const metaDiv = document.createElement('div');
                 metaDiv.className = 'meta';
-                // It is safe to use innerHTML here because we control the structure 
-                // and 'user' is the only dynamic part, which we should sanitize or trust 
-                // generally simple text. Ideally, build this with elements too, but this is acceptable.
-                metaDiv.innerHTML = `${user} • ${formatTime(time)} <span class="read" style="display:none;">✓✓</span>`;
+
+                const userSpan = document.createElement('span');
+                userSpan.className = 'meta-user';
+                userSpan.textContent = user;
+
+                const sep = document.createTextNode(' • ');
+
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'meta-time';
+                timeSpan.textContent = formatTime(time);
+
+                const readSpan = document.createElement('span');
+                readSpan.className = 'read';
+                readSpan.style.display = 'none';
+                readSpan.textContent = '✓✓';
+
+                metaDiv.appendChild(userSpan);
+                metaDiv.appendChild(sep);
+                metaDiv.appendChild(timeSpan);
+                metaDiv.appendChild(readSpan);
 
                 bubble.appendChild(textDiv);
                 bubble.appendChild(metaDiv);
@@ -125,7 +147,8 @@
             const tab = document.querySelector(`.room-tab[data-room="${room}"]`);
             if (tab) {
                 const count = unreadCounts[room] || 0;
-                tab.querySelector('.badge').textContent = count > 0 ? count : '';
+                const badge = tab.querySelector('.badge');
+                badge.textContent = count > 0 ? String(count) : '';
             }
         }
 
@@ -133,12 +156,22 @@
             const tab = document.createElement('button');
             tab.className = 'room-tab';
             tab.dataset.room = room;
-            tab.innerHTML = `${room} <span class="badge"></span>`;
-            tab.onclick = () => switchRoom(room);
+
+            const label = document.createElement('span');
+            label.textContent = room;
+
+            const badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.textContent = '';
+
+            tab.appendChild(label);
+            tab.appendChild(badge);
+
+            tab.addEventListener('click', () => switchRoom(room));
             roomTabs.appendChild(tab);
         }
 
-        joinBtn.onclick = () => {
+        joinBtn.addEventListener('click', () => {
             const room = (roomInput.value || 'general').trim();
             const user = (usernameInput.value || 'Anonymous').trim();
 
@@ -149,23 +182,23 @@
             }
 
             switchRoom(room);
-        };
+        });
 
-        sendBtn.onclick = () => {
+        sendBtn.addEventListener('click', () => {
             const msg = messageInput.value.trim();
             if (!msg) return;
             const user = (usernameInput.value || 'Anonymous').trim();
             socket.emit('chat message', { room: activeRoom, user, msg });
             messageInput.value = '';
-        };
-
-        messageInput.addEventListener('keydown', e => {
-            if (e.key === 'Enter') sendBtn.onclick();
         });
 
-        emojiBtn.onclick = () => {
+        messageInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') sendBtn.click();
+        });
+
+        emojiBtn.addEventListener('click', () => {
             emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
-        };
+        });
 
         emojiPicker.addEventListener('emoji-click', e => {
             messageInput.value += e.detail.unicode;
@@ -191,11 +224,19 @@
         });
 
         socket.on('online users', users => {
-            onlineList.innerHTML = users.map(u => `<li>${u.user}</li>`).join('');
+            // Rebuild online list safely
+            onlineList.innerHTML = '';
+            users.forEach(u => {
+                const li = document.createElement('li');
+                li.textContent = u.user;
+                onlineList.appendChild(li);
+            });
         });
+
+        // initialize with default tab
+        addRoomTab('general');
+        switchRoom('general');
     </script>
 </body>
 
 </html>
-
-

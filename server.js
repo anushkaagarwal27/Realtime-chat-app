@@ -1,11 +1,21 @@
 const express = require("express");
 const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
+const http = require("http").createServerTb(app);
+const io = require("socket.io")(http, {
+  cors: {
+    origin: "*", // Allow connection from any URL (including your GitHub Pages)
+    methods: ["GET", "POST"]
+  }
+});
 
 app.use(express.static("public"));
 
-const users = {}; // socket.id -> { user, rooms: Set }
+// Add a default route to check if server is running on Render
+app.get("/", (req, res) => {
+  res.send("Chat Server is Running!");
+});
+
+const users = {}; 
 
 function getUsersInRoom(room) {
   return Object.entries(users)
@@ -61,8 +71,8 @@ io.on("connection", (socket) => {
   });
 });
 
-http.listen(5000, () => {
-  console.log("Server running at http://localhost:5000");
+// CRITICAL: Use process.env.PORT for Render, fallback to 3000 for local
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-

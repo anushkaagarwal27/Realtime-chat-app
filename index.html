@@ -50,7 +50,9 @@
         // /socket.io/socket.io.js or perform xhr-polling that could return
         // scripts from the backend and trigger CSP eval warnings.
         const socket = io(BACKEND_URL, {
-            transports: ["websocket"]
+            transports: ["websocket"],
+            upgrade: false, 
+            forceNew: true
         });
         // ---------------------
 
@@ -240,3 +242,4 @@
 </body>
 
 </html>
+

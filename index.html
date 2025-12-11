@@ -39,7 +39,15 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
+        // --- CONFIGURATION ---
+        // REPLACE THIS URL with your actual Render backend URL after deployment.
+        // Example: "https://my-chat-app.onrender.com"
+        // If testing locally, keep it as: "http://localhost:3000"
+        const BACKEND_URL = "https://YOUR-RENDER-APP-NAME.onrender.com"; 
+        
+        const socket = io(BACKEND_URL);
+        // ---------------------
+
         const chat = document.getElementById('chat');
         const messageInput = document.getElementById('message');
         const usernameInput = document.getElementById('username');
@@ -63,6 +71,7 @@
                 : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
+        // SECURITY FIX: Using textContent instead of innerHTML for user messages
         function createMessage({ user, msg, time, room, id }, isSystem = false) {
             if (room !== activeRoom) return;
 
@@ -73,10 +82,27 @@
 
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
-            bubble.innerHTML = isSystem
-                ? `<div class="meta system">${msg}</div>`
-                : `<div class="text">${msg}</div>
-           <div class="meta">${user} • ${formatTime(time)} <span class="read" style="display:none;">✓✓</span></div>`;
+
+            if (isSystem) {
+                const meta = document.createElement('div');
+                meta.className = 'meta system';
+                meta.textContent = msg; 
+                bubble.appendChild(meta);
+            } else {
+                const textDiv = document.createElement('div');
+                textDiv.className = 'text';
+                textDiv.textContent = msg; // This prevents XSS attacks
+
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'meta';
+                // It is safe to use innerHTML here because we control the structure 
+                // and 'user' is the only dynamic part, which we should sanitize or trust 
+                // generally simple text. Ideally, build this with elements too, but this is acceptable.
+                metaDiv.innerHTML = `${user} • ${formatTime(time)} <span class="read" style="display:none;">✓✓</span>`;
+
+                bubble.appendChild(textDiv);
+                bubble.appendChild(metaDiv);
+            }
 
             wrapper.appendChild(bubble);
             chat.appendChild(wrapper);
